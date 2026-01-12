@@ -72,8 +72,8 @@ python -m uvicorn backend.main:app --reload
 
 *La API estará disponible en:*
 
-Documentación interactiva:
-http://127.0.0.1:8000/docs
+**Documentación interactiva:
+https://carolinabenitez23-pricefit-frontendapp-m5xlfb.streamlit.app/**
 
 Endpoint principal:
 POST /calcular_precio/
