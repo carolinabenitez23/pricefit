@@ -1,39 +1,93 @@
+# Streamlit version sin backend - deploy final
+
 import streamlit as st
-import requests
-import pandas as pd
+import sys
+from pathlib import Path
 
-st.title("PriceFit – Asistente Inteligente de Precios")
+# Permite importar módulos desde la raíz del proyecto
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
 
-st.header("Ingresar datos del producto")
+from backend.pricing_logic import calcular_costo_total
 
-costo_usd = st.number_input("Costo proveedor (USD)", min_value=0.0)
-tipo_cambio = st.number_input("Tipo de cambio", min_value=0.0)
-gastos_fijos = st.number_input("Gastos fijos por unidad (ARS)", min_value=0.0)
-impuestos_pct = st.number_input("Impuestos (%)", min_value=0.0)
-categoria = st.text_input("Categoría del producto", "remera básica")
-objetivo = st.selectbox("Objetivo comercial", ["venta rápida", "mantener margen", "premium"])
+# Configuración de la página
+st.set_page_config(
+    page_title="PriceFit - IA para Pricing",
+    layout="centered"
+)
 
-if st.button("Calcular precio con IA"):
+# Título y descripción
+st.title("PriceFit – Asistente Inteligente de Pricing para Moda")
+st.write("Completa los datos para obtener el precio de venta sugerido.")
 
-    payload = {
-        "costo_usd": costo_usd,
-        "tipo_cambio": tipo_cambio,
-        "gastos_fijos": gastos_fijos,
-        "impuestos_pct": impuestos_pct,
-        "categoria": categoria,
-        "objetivo": objetivo
-    }
+# =========================
+# Formulario de entrada
+# =========================
+with st.form("pricing_form"):
 
-    response = requests.post("http://127.0.0.1:8000/calcular_precio/", json=payload)
+    st.subheader("Datos del producto")
 
-    if response.status_code == 200:
-        data = response.json()
-        
-        st.subheader("Costo total (ARS)")
-        st.json(data["costo_detalle"])
+    costo_usd = st.number_input(
+        "Costo proveedor (USD)",
+        min_value=0.0,
+        step=0.1
+    )
 
-        st.subheader("Respuesta de la IA")
-        st.write(data["ia_respuesta"])
+    tipo_cambio = st.number_input(
+        "Tipo de cambio (ARS)",
+        min_value=0.0,
+        step=1.0
+    )
 
-    else:
-        st.error("Error llamando a la API")
+    gastos_fijos = st.number_input(
+        "Gastos fijos por unidad (ARS)",
+        min_value=0.0,
+        step=1.0
+    )
+
+    impuestos_pct = st.number_input(
+        "Impuestos (%)",
+        min_value=0.0,
+        max_value=100.0,
+        step=1.0
+    )
+
+    categoria = st.selectbox(
+        "Categoría del producto",
+        ["remera", "pantalón", "campera", "vestido", "accesorios", "otro"]
+    )
+
+    objetivo = st.selectbox(
+        "Objetivo comercial",
+        [
+            "maximizar rentabilidad",
+            "competir en precio",
+            "aumentar rotación",
+            "posicionamiento premium"
+        ]
+    )
+
+    submitted = st.form_submit_button("Calcular precio recomendado")
+
+# =========================
+# Resultados
+# =========================
+if submitted:
+
+    st.subheader("Resultados del cálculo")
+
+    costos = calcular_costo_total(
+        costo_usd=costo_usd,
+        tipo_cambio=tipo_cambio,
+        gastos_fijos=gastos_fijos,
+        impuestos_pct=impuestos_pct
+    )
+
+    st.write("### Costos detallados")
+    st.json(costos)
+
+    # Regla simple de pricing (margen ejemplo)
+    margen = 1.4
+    precio_sugerido = round(costos["total"] * margen, 2)
+
+    st.success(f"Precio de venta sugerido: ARS {precio_sugerido}")
